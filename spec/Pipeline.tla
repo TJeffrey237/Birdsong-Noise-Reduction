@@ -37,24 +37,54 @@
 (*      4. DENOISING: Extract a denoising magnitude matrix from the noisy       *)
 (*        matrix M(t, f) produced from the preprocessing.                       *)
 (*                                                                              *)
+(* More preceisely, the system should follow the following state sequence:      *)
+(*                                                                              *)
+(*      init -> standardized -> time-frequency -> phase-split -> baseline       *)
+(*      -> denoising                                                            *)
+(*                                                                              *)
 
-EXTENDS Reals, FiniteSets
+
+EXTENDS Integers, FiniteSets
 
 CONSTANTS
-    StateSet
+    StateSet,       \* represent set of main high-level states
+    Unassigned,     \* represents an unassigned state
+    T,              \* represent type for time-domain arguments
+    F,              \* represent type for frequency-domain arguments
+    AmplitudeValues \* represent set of amplitude values
+
+ASSUME T # {}
+ASSUME F # {}
+ASSUME AmplitudeValues # {}
+ASSUME Unassigned \notin StateSet
+
+Times == 0..5               \* abstraction for time-domain steps
+Frequencies == 1000..1005   \* abstraction for frequency-domain Hz measurements
+Amplitudes == { -1, 0, 1 }  \* abstraction for amplitude values
 
 VARIABLES
-    state
+    state,          \* track main high-level states
+    x_0,            \* initial input signal, maps time-domain arguments to amplitudes
+    x               \* standardized signal, maps time-domain arguments to amplitudes
 
-vars == << state >>
 
-Init == state \in StateSet
+vars == << state, x_0, x >>
 
-Next == state' \in StateSet
+\* Abstraction for sample-rate trait for audio tracks, maps input to a sample rate
+
+Init ==
+    /\ state = "init"
+    /\ x_0 \in [ T -> AmplitudeValues ]     \* initial audio signal
+    /\ x = Unassigned
+
+Next ==
+    \/ UNCHANGED << vars >>
 
 Spec == Init /\ [][Next]_vars
 
 TypeOk ==
     /\ state \in StateSet
+    /\ x_0 \in [ T -> AmplitudeValues ]
+    /\ x \in [ T -> AmplitudeValues ] \cup { Unassigned }
 
 ================================================

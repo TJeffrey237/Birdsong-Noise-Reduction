@@ -5,8 +5,7 @@ import noisereduce as nr
 import soundfile as sf
 import os
 
-from Spectogram.spectogram import Spectogram
-from audio_io import compute_stft
+from spectogram.compare_spectograms import compare_spectrograms
 
 def main():
     print("Start of program")

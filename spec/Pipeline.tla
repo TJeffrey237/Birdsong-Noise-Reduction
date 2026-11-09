@@ -60,9 +60,9 @@ ASSUME AmplitudeValues # {}
 ASSUME TargetSampleRate \in Nat
 ASSUME Unassigned \notin StateSet
 
-Times == 0..5               \* abstraction for time-domain steps
+Times == 0..1               \* abstraction for time-domain steps
 Frequencies == { 1000 }     \* abstraction for frequency-domain Hz measurements
-Amplitudes == { -1, 0, 1 }  \* abstraction for amplitude values
+Amplitudes == { -1, 1 }     \* abstraction for amplitude values
 
 VARIABLES
     state,          \* track main high-level states
@@ -71,10 +71,11 @@ VARIABLES
     X,              \* time-frequency representation, maps time-domain arguments to frequency-domain amplitudes
     M,              \* magnitude matrix, maps time-domain arguments to frequency-domain amplitudes
     PHI,            \* phase matrix, maps time-domain arguments to frequency-domain phases
+    B,              \* baseline matrix, maps time-domain arguments to frequency-domain amplitudes
     sampleRate      \* track's sample rate
 
 
-vars == << state, x_0, x, X, M, PHI, sampleRate >>
+vars == << state, x_0, x, X, M, PHI, B, sampleRate >>
 
 \* Abstraction for sample-rate trait for audio tracks, maps input to a sample rate
 
@@ -85,6 +86,7 @@ Init ==
     /\ X = Unassigned
     /\ M = Unassigned
     /\ PHI = Unassigned
+    /\ B = Unassigned
     /\ sampleRate \in (TargetSampleRate - 1)..(TargetSampleRate + 1)    \* sample rates vary
 
 \* init -> standardized
@@ -96,7 +98,7 @@ Standardize ==
     /\ sampleRate' = TargetSampleRate   \* normalize sample rate
     /\ x' = x_0                         \* resample input signal
     /\ state' = "standardized"
-    /\ UNCHANGED << x_0, X, M, PHI >>
+    /\ UNCHANGED << x_0, X, M, PHI, B >>
 
 \* standardized -> time-frequency
 \* Abstraction for time-frequency analysis of the standardized signal.
@@ -106,7 +108,7 @@ STFT ==
     /\ X = Unassigned
     /\ X' \in [ T -> [ F -> Frequencies ] ]
     /\ state' = "time-frequency"
-    /\ UNCHANGED << x_0, x, M, PHI, sampleRate >>
+    /\ UNCHANGED << x_0, x, M, PHI, B, sampleRate >>
 
 \* time-frequency -> phase-split
 \* Abstraction for phase splitting of the time-frequency representation.
@@ -117,12 +119,31 @@ PhaseSplit ==
     /\ M' \in [ T -> [ F -> AmplitudeValues ] ]
     /\ PHI' \in [ T -> [ F -> AmplitudeValues ] ]
     /\ state' = "phase-split"
-    /\ UNCHANGED << x_0, x, X, sampleRate >>
+    /\ UNCHANGED << x_0, x, X, B, sampleRate >>
+
+\* phase-split -> baseline
+\* Abstraction for baseline estimation of the phase-split representation.
+BaseLine ==
+    /\ state = "phase-split"
+    /\ B = Unassigned
+    /\ B' \in [ T -> [ F -> AmplitudeValues ] ]
+    /\ state' = "baseline"
+    /\ UNCHANGED << x_0, x, X, M, PHI, sampleRate >>
+
+\* baseline -> denoising
+\* Abstraction for denoising of the standardized (not denoised) representation.
+Denoise ==
+    /\ state = "baseline"
+    /\ x' \in [ T -> AmplitudeValues ]
+    /\ state' = "denoising"
+    /\ UNCHANGED << x_0, X, M, PHI, B, sampleRate >>
 
 Next ==
     \/ Standardize
     \/ STFT
     \/ PhaseSplit
+    \/ BaseLine
+    \/ Denoise
     \/ UNCHANGED << vars >>
 
 Spec == Init /\ [][Next]_vars
@@ -134,6 +155,7 @@ TypeOk ==
     /\ X \in [ T -> [ F -> Frequencies ] ] \cup { Unassigned }
     /\ M \in [ T -> [ F -> AmplitudeValues ] ] \cup { Unassigned }
     /\ PHI \in [ T -> [ F -> AmplitudeValues ] ] \cup { Unassigned }
+    /\ B \in [ T -> [ F -> AmplitudeValues ] ] \cup { Unassigned }
     /\ sampleRate \in (TargetSampleRate - 1)..(TargetSampleRate + 1)
 
 ================================================

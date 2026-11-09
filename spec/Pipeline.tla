@@ -44,18 +44,20 @@
 (*                                                                              *)
 
 
-EXTENDS Integers, FiniteSets
+EXTENDS Integers, Naturals, FiniteSets
 
 CONSTANTS
     StateSet,       \* represent set of main high-level states
     Unassigned,     \* represents an unassigned state
     T,              \* represent type for time-domain arguments
     F,              \* represent type for frequency-domain arguments
-    AmplitudeValues \* represent set of amplitude values
+    AmplitudeValues,\* represent set of amplitude values
+    TargetSampleRate \* represent input sample rate
 
 ASSUME T # {}
 ASSUME F # {}
 ASSUME AmplitudeValues # {}
+ASSUME TargetSampleRate \in Nat
 ASSUME Unassigned \notin StateSet
 
 Times == 0..5               \* abstraction for time-domain steps
@@ -65,10 +67,11 @@ Amplitudes == { -1, 0, 1 }  \* abstraction for amplitude values
 VARIABLES
     state,          \* track main high-level states
     x_0,            \* initial input signal, maps time-domain arguments to amplitudes
-    x               \* standardized signal, maps time-domain arguments to amplitudes
+    x,              \* standardized signal, maps time-domain arguments to amplitudes
+    sampleRate      \* track's sample rate
 
 
-vars == << state, x_0, x >>
+vars == << state, x_0, x, sampleRate >>
 
 \* Abstraction for sample-rate trait for audio tracks, maps input to a sample rate
 
@@ -76,8 +79,22 @@ Init ==
     /\ state = "init"
     /\ x_0 \in [ T -> AmplitudeValues ]     \* initial audio signal
     /\ x = Unassigned
+    /\ sampleRate \in (TargetSampleRate - 1)..(TargetSampleRate + 1)    \* sample rates vary
+
+\* init -> standardized
+\* Abstraction for standardization of the input dataset,
+\* which resamples it to a consistent sample rate.
+Standardize ==
+    /\ state = "init"
+    /\ x = Unassigned
+    /\ sampleRate' = TargetSampleRate   \* normalize sample rate
+    /\ x' = x_0                         \* resample input signal
+    /\ state' = "standardized"
+    /\ UNCHANGED << x_0 >>
+
 
 Next ==
+    \/ Standardize
     \/ UNCHANGED << vars >>
 
 Spec == Init /\ [][Next]_vars
@@ -86,5 +103,6 @@ TypeOk ==
     /\ state \in StateSet
     /\ x_0 \in [ T -> AmplitudeValues ]
     /\ x \in [ T -> AmplitudeValues ] \cup { Unassigned }
+    /\ sampleRate \in (TargetSampleRate - 1)..(TargetSampleRate + 1)
 
 ================================================

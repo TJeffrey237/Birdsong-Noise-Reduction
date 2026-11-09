@@ -69,10 +69,12 @@ VARIABLES
     x_0,            \* initial input signal, maps time-domain arguments to amplitudes
     x,              \* standardized signal, maps time-domain arguments to amplitudes
     X,              \* time-frequency representation, maps time-domain arguments to frequency-domain amplitudes
+    M,              \* magnitude matrix, maps time-domain arguments to frequency-domain amplitudes
+    PHI,            \* phase matrix, maps time-domain arguments to frequency-domain phases
     sampleRate      \* track's sample rate
 
 
-vars == << state, x_0, x, X, sampleRate >>
+vars == << state, x_0, x, X, M, PHI, sampleRate >>
 
 \* Abstraction for sample-rate trait for audio tracks, maps input to a sample rate
 
@@ -81,6 +83,8 @@ Init ==
     /\ x_0 \in [ T -> AmplitudeValues ]     \* initial audio signal
     /\ x = Unassigned
     /\ X = Unassigned
+    /\ M = Unassigned
+    /\ PHI = Unassigned
     /\ sampleRate \in (TargetSampleRate - 1)..(TargetSampleRate + 1)    \* sample rates vary
 
 \* init -> standardized
@@ -92,7 +96,7 @@ Standardize ==
     /\ sampleRate' = TargetSampleRate   \* normalize sample rate
     /\ x' = x_0                         \* resample input signal
     /\ state' = "standardized"
-    /\ UNCHANGED << x_0, X>>
+    /\ UNCHANGED << x_0, X, M, PHI >>
 
 \* standardized -> time-frequency
 \* Abstraction for time-frequency analysis of the standardized signal.
@@ -102,11 +106,23 @@ STFT ==
     /\ X = Unassigned
     /\ X' \in [ T -> [ F -> Frequencies ] ]
     /\ state' = "time-frequency"
-    /\ UNCHANGED << x_0, x, sampleRate >>
+    /\ UNCHANGED << x_0, x, M, PHI, sampleRate >>
+
+\* time-frequency -> phase-split
+\* Abstraction for phase splitting of the time-frequency representation.
+PhaseSplit ==
+    /\ state = "time-frequency"
+    /\ M = Unassigned
+    /\ PHI = Unassigned
+    /\ M' \in [ T -> [ F -> AmplitudeValues ] ]
+    /\ PHI' \in [ T -> [ F -> AmplitudeValues ] ]
+    /\ state' = "phase-split"
+    /\ UNCHANGED << x_0, x, X, sampleRate >>
 
 Next ==
     \/ Standardize
     \/ STFT
+    \/ PhaseSplit
     \/ UNCHANGED << vars >>
 
 Spec == Init /\ [][Next]_vars
@@ -116,6 +132,8 @@ TypeOk ==
     /\ x_0 \in [ T -> AmplitudeValues ]
     /\ x \in [ T -> AmplitudeValues ] \cup { Unassigned }
     /\ X \in [ T -> [ F -> Frequencies ] ] \cup { Unassigned }
+    /\ M \in [ T -> [ F -> AmplitudeValues ] ] \cup { Unassigned }
+    /\ PHI \in [ T -> [ F -> AmplitudeValues ] ] \cup { Unassigned }
     /\ sampleRate \in (TargetSampleRate - 1)..(TargetSampleRate + 1)
 
 ================================================

@@ -158,4 +158,83 @@ TypeOk ==
     /\ B \in [ T -> [ F -> AmplitudeValues ] ] \cup { Unassigned }
     /\ sampleRate \in (TargetSampleRate - 1)..(TargetSampleRate + 1)
 
+
+\* Properties
+
+\* -- Sequence
+
+\* Standardization must occur before STFT.
+StandardizeBeforeSTFT ==
+    [] (state = "time-frequency" =>
+        x # Unassigned)
+
+\* STFT must occur before PhaseSplit.
+STFTBeforePhaseSplit ==
+    [] (state = "phase-split" =>
+        X # Unassigned)
+
+\* PhaseSplit must occur before BaseLine.
+PhaseSplitBeforeBaseline ==
+    [] (state = "baseline" =>
+        /\ M # Unassigned
+        /\ PHI # Unassigned)
+
+\* Baseline must occur before Denoise.
+BaselineBeforeDenoise ==
+    [] (state = "denoising" =>
+        B # Unassigned)
+
+\* -- Existence
+
+\* A standardized signal must exist after standardization.
+StandardizedSignalExists ==
+    [] (state \in {"standardized",
+                   "time-frequency",
+                   "phase-split",
+                   "baseline",
+                   "denoising"} =>
+        x # Unassigned)
+
+\* Time-frequency representation must exist after STFT.
+TimeFrequencyExists ==
+    [] (state \in {"time-frequency",
+                   "phase-split",
+                   "baseline",
+                   "denoising"} =>
+        X # Unassigned)
+
+\* Magnitude and phase must exist after PhaseSplit.
+MagnitudePhaseExist ==
+    [] (state \in {"phase-split",
+                   "baseline",
+                   "denoising"} =>
+        /\ M # Unassigned
+        /\ PHI # Unassigned)
+
+\* Baseline output must exist before denoising.
+BaselineExists ==
+    [] (state = "denoising" => B # Unassigned)
+
+\* -- High-level correctness
+
+\* Standardization must set the target sample rate.
+TargetSampleRateEnforced ==
+    [] (state \in {"standardized",
+                   "time-frequency",
+                   "phase-split",
+                   "baseline",
+                   "denoising"} =>
+        sampleRate = TargetSampleRate)
+
+\* Standardization must preserve the original signal.
+\* (Applicable to your current abstraction, where resampling
+\*  is represented as a direct copy.)
+SignalPreserved ==
+    [] (state = "standardized" => x = x_0)
+
+\* Magnitude and phase must have matching time-frequency domains.
+MagnitudePhaseDomains ==
+    [] (M # Unassigned /\ PHI # Unassigned =>
+        DOMAIN M = DOMAIN PHI)
+
 ================================================

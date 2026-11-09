@@ -1,0 +1,22 @@
+# Audio and raw datasets
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+
+# Model checkpoints and weights
+checkpoints/*.pt
+checkpoints/*.pth
+!checkpoints/.gitkeep
+
+# Generated outputs
+outputs/*
+!outputs/.gitkeep
+
+# Python cache & virtual environments
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+venv/
+env/
+.env

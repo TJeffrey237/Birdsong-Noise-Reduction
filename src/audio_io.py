@@ -28,6 +28,7 @@ def synthesize_istft(mag: np.ndarray, phase: np.ndarray, hop_length: int = 512) 
     D_reconstructed = mag * np.exp(1j * phase)
     return librosa.istft(D_reconstructed, hop_length = hop_length)
 
+# For testing only NOT for use in production.
 if __name__ == "__main__":
     import os
     from glob import glob
@@ -54,7 +55,6 @@ if __name__ == "__main__":
     mse = np.mean((y[:min_len] - y_reconstructed[:min_len]) ** 2)
     print(f"Reconstruction Mean Squared Error (MSE): {mse:.2e}")
 
-    # 5. Save the output
     os.makedirs("outputs", exist_ok=True)
     out_file = "outputs/audio_io_test_reconstruction.wav"
     sf.write(out_file, y_reconstructed, sr)

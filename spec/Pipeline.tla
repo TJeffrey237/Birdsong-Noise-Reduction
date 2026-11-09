@@ -61,17 +61,18 @@ ASSUME TargetSampleRate \in Nat
 ASSUME Unassigned \notin StateSet
 
 Times == 0..5               \* abstraction for time-domain steps
-Frequencies == 1000..1005   \* abstraction for frequency-domain Hz measurements
+Frequencies == { 1000 }     \* abstraction for frequency-domain Hz measurements
 Amplitudes == { -1, 0, 1 }  \* abstraction for amplitude values
 
 VARIABLES
     state,          \* track main high-level states
     x_0,            \* initial input signal, maps time-domain arguments to amplitudes
     x,              \* standardized signal, maps time-domain arguments to amplitudes
+    X,              \* time-frequency representation, maps time-domain arguments to frequency-domain amplitudes
     sampleRate      \* track's sample rate
 
 
-vars == << state, x_0, x, sampleRate >>
+vars == << state, x_0, x, X, sampleRate >>
 
 \* Abstraction for sample-rate trait for audio tracks, maps input to a sample rate
 
@@ -79,6 +80,7 @@ Init ==
     /\ state = "init"
     /\ x_0 \in [ T -> AmplitudeValues ]     \* initial audio signal
     /\ x = Unassigned
+    /\ X = Unassigned
     /\ sampleRate \in (TargetSampleRate - 1)..(TargetSampleRate + 1)    \* sample rates vary
 
 \* init -> standardized
@@ -90,11 +92,21 @@ Standardize ==
     /\ sampleRate' = TargetSampleRate   \* normalize sample rate
     /\ x' = x_0                         \* resample input signal
     /\ state' = "standardized"
-    /\ UNCHANGED << x_0 >>
+    /\ UNCHANGED << x_0, X>>
 
+\* standardized -> time-frequency
+\* Abstraction for time-frequency analysis of the standardized signal.
+\* Simulate Short-Time Fourier Transform (STFT)
+STFT ==
+    /\ state = "standardized"
+    /\ X = Unassigned
+    /\ X' \in [ T -> [ F -> Frequencies ] ]
+    /\ state' = "time-frequency"
+    /\ UNCHANGED << x_0, x, sampleRate >>
 
 Next ==
     \/ Standardize
+    \/ STFT
     \/ UNCHANGED << vars >>
 
 Spec == Init /\ [][Next]_vars
@@ -103,6 +115,7 @@ TypeOk ==
     /\ state \in StateSet
     /\ x_0 \in [ T -> AmplitudeValues ]
     /\ x \in [ T -> AmplitudeValues ] \cup { Unassigned }
+    /\ X \in [ T -> [ F -> Frequencies ] ] \cup { Unassigned }
     /\ sampleRate \in (TargetSampleRate - 1)..(TargetSampleRate + 1)
 
 ================================================

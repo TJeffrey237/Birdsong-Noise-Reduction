@@ -16,13 +16,21 @@ class SpectrogramCAE(nn.Module):
             nn.BatchNorm2d(32),
             nn.LeakyReLU(negative_slope = 0.2, inplace = True),
 
-            nn.Conv2d(in_channels = 32, out_channels = 64, kernel_size = 3, stride = 2, padding = 1),
-            nn.BatchNorm2d(64),
+            nn.Conv2d(in_channels = 32, out_channels = 32, kernel_size = 3, stride = 2, padding = 1),
+            nn.BatchNorm2d(32),
+            nn.LeakyReLU(negative_slope = 0.2, inplace = True),
+
+            nn.Conv2d(in_channels = 32, out_channels = 16, kernel_size = 3, stride = 2, padding = 1),
+            nn.BatchNorm2d(16),
             nn.LeakyReLU(negative_slope = 0.2, inplace = True)
         )
 
         self.decoder = nn.Sequential(
-            nn.ConvTranspose2d(in_channels = 64, out_channels = 32, kernel_size = 3, stride = 2, padding = 1, output_padding = 1),
+            nn.ConvTranspose2d(in_channels = 16, out_channels = 32, kernel_size = 3, stride = 2, padding = 1, output_padding = 1),
+            nn.BatchNorm2d(32),
+            nn.LeakyReLU(negative_slope = 0.2, inplace = True),
+
+            nn.ConvTranspose2d(in_channels = 32, out_channels = 32, kernel_size = 3, stride = 2, padding = 1, output_padding = 1),
             nn.BatchNorm2d(32),
             nn.LeakyReLU(negative_slope = 0.2, inplace = True),
 

@@ -18,6 +18,7 @@ class AmbientNoisePatchDataset(Dataset):
     def __getitem__(self, idx: int) -> torch.Tensor:
         return self.patches[idx]
 
+# extracts the quiet patches of ambient noise from the birdCLEF soundscape files
 def extract_noise_patches(
     file_path: str,
     patch_size: int = 128,
@@ -41,7 +42,17 @@ def extract_noise_patches(
     if num_frequency_bins < patch_size or total_time_frames < patch_size:
         return patches
 
+    # this is for finding quiet patches within the soundscape, to
+    # avoid including bird vocalizations in the noise dataset
+    frame_energies = np.mean(mag_norm, axis = 0)
+    quiet_threshold = np.percentile(frame_energies, 40)
+
     for t in range(0, total_time_frames - patch_size + 1, patch_size):
+        # skips over patches that are too loud
+        slice_energy = np.mean(frame_energies[t:t + patch_size])
+        if slice_energy > quiet_threshold:
+            continue
+
         patch = mag_norm[:patch_size, t:t + patch_size]
         patch = np.expand_dims(patch, axis = 0)
         patches.append(patch)
@@ -64,7 +75,7 @@ def create_noise_dataloader(
     audio_files = (
         glob(os.path.join(soundscape_dir, "*.wav")) +
         glob(os.path.join(soundscape_dir, "*.mp3")) +
-        glob(os.path.join(soundscape_dir, "*.ogg*"))
+        glob(os.path.join(soundscape_dir, "*.ogg"))
     )
 
     # uses synthetic noise patches if the soundscape files cannot be found

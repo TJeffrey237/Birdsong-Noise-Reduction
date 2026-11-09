@@ -19,4 +19,10 @@ __pycache__/
 .ipynb_checkpoints/
 venv/
 env/
-.env
+.env*.vscode/
+
+*.tlc
+*.out
+*.log
+*.dot
+*states/

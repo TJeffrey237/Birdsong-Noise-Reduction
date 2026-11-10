@@ -3,7 +3,7 @@ import numpy as np
 import noisereduce as nr
 import soundfile as sf
 
-from spectogram.compare_spectograms import compare_spectrograms
+from spectrogram.compare_spectrograms import compare_spectrograms
 
 def main():
     print("Start of program")

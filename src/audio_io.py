@@ -5,7 +5,7 @@ import soundfile as sf
 
 # Loads and resample the audio file to a target sample rate (32kHz) and converts to mono.
 def load_standard_audio(file_path: str, target_sr: int = 32000):
-    y, sr = librosa.load(file_path, sr = target_sr, mono=True)
+    y, sr = librosa.load(file_path, sr = target_sr, mono = True)
     return y, sr
 
 # Does STFT and returns normalized magnitude and phase.

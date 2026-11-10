@@ -3,7 +3,7 @@ import numpy as np
 import soundfile as sf
 import pywt
 
-from spectogram.compare_spectograms import compare_spectrograms
+from spectrogram.compare_spectrograms import compare_spectrograms
 
 def main():
     print("Start of program")

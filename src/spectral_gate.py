@@ -1,9 +1,7 @@
 import librosa
-import matplotlib.pyplot as plt
 import numpy as np
 import noisereduce as nr
 import soundfile as sf
-import os
 
 from spectogram.compare_spectograms import compare_spectrograms
 
@@ -23,7 +21,7 @@ def main():
 
     print("End of program")
 
-def spectral_gate(audio, sr):
+def spectral_gate(audio: np.ndarray, sr: int) -> np.ndarray:
     """
     Apply spectral gate logic to a given audio track.
 

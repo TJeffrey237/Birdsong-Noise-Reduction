@@ -13,11 +13,7 @@ def main():
 
     audio, sr = librosa.load(file_path, sr=None)
 
-    # reduced_audio = bayesian_shrink(audio)
-    # reduced_audio = bayesian_epanechnikov_shinkage(audio)
     reduced_audio = epanechnikov_shrink(audio)
-
-    # print(np.array_equal(audio, reduced_audio))
 
     sf.write(write_audio_path, reduced_audio, sr)
     print(f"Saved reduced noise to {write_audio_path}")
@@ -294,9 +290,17 @@ def epanechnikov_shrink(
     tau: float = 2.0
 ) -> np.ndarray:
     """
-    Applies Bayesian wavelet shrinkage using an Epanechnikov prior.
+    Denoise an audio signal using wavelet-based Bayesian shrinkage
+    with the Epanechnikov prior.
 
-    Based on Barrios et al. (2026).
+    Based off of the technique given in "Processing and classifying bird songs using wavelet
+    techniques and supervised learning,"
+    
+    Laura Luca Dominguez Barrios, Fidel Aniano Causil Barrios, Alex Rodrigo dos Santos Sousa,
+    and Marianna Rodrigues Motta; all from the Department of Statistics, State University of
+    Campinas, Campinas, Brazil.
+
+    arXiv:2609.10826
 
     Args:
         audio: Input audio waveform.
@@ -393,185 +397,3 @@ def epanechnikov_shrink(
 
 if __name__ == "__main__":
     main()
-
-
-
-#################################3
-
-
-
-
-# def bayesian_epanechnikov_shinkage(
-#     audio: np.ndarray,
-#     wavelet: str="db10",
-#     level=5) -> np.ndarray:
-
-#     """
-#     Denoise an audio signal using wavelet-based Bayesian shrinkage
-#     with the Epanechnikov prior.
-
-#     Based off of the technique given in "Processing and classifying bird songs using wavelet
-#     techniques and supervised learning,"
-    
-#     Laura Luca Dominguez Barrios, Fidel Aniano Causil Barrios, Alex Rodrigo dos Santos Sousa,
-#     and Marianna Rodrigues Motta; all from the Department of Statistics, State University of
-#     Campinas, Campinas, Brazil.
-
-#     arXiv:2609.10826
-
-#     Args:
-#         audio: Input audio waveform (1D).
-#         wavelet: Wavelet family used for decomposition.
-#         level: Number of decomposition levels.
-        
-#     Returns:
-#         Reconstructed denoised audio waveform.
-#     """
-
-#     # VALIDATE INPUT
-
-#     # decompose input into wavelet coefficients
-#     coeffs = pywt.wavedec(audio, wavelet=wavelet, level=level, mode="symmetric")
-
-#     # estimate noise
-#     # noise_sigma = (
-#     #     np.median(
-#     #         np.abs(coeffs[-1] - np.median(coeffs[-1]))
-#     #     ) / 0.6745
-#     # )
-#     noise_sigma = np.std()
-#     print(f"Estimated noise sigma: {noise_sigma}")
-
-#     sigma_n_sq = noise_sigma ** 2
-
-#     # Preserve the approximation coefficient in denoised coefficients
-#     denoised_coeffs = [coeffs[0]]
-
-#     # Apply Bayesian posterior-mean shrinkage
-#     for j, detail in enumerate(coeffs[1:]):
-
-#         alpha = calculate_alpha(j)
-#         beta = calculate_beta(detail)
-
-#         print(f"alpha ~ {alpha}")
-#         print(f"beta ~ {beta}")
-
-#         denoised_detail = epanechnikov_posterior_mean(
-#             detail,
-#             alpha,
-#             beta
-#         )
-
-#         denoised_coeffs.append(denoised_detail)
-
-#     # reconstruct denoised audio with inverse wavelet transform
-
-#     return None
-
-
-
-# def bayesian_shrink(
-#     audio: np.ndarray,
-#     wavelet: str = "db8",
-#     level: int = 5,
-#     noise_sigma: float | None = None,
-#     ) -> np.ndarray:
-    
-#     """
-#     Denoise an audio signal using wavelet-based Bayesian shrinkage.
-
-#     Args:
-#         audio: Input audio waveform (1D).
-#         wavelet: Wavelet family used for decomposition.
-#         level: Number of decomposition levels.
-#         noise_sigma: Optional known noise standard deviation.
-#                      If None, estimate using MAD of finest detail
-#                      coefficients.
-
-#     Returns:
-#         Reconstructed denoised audio waveform.
-#     """
-#     audio = np.asarray(audio, dtype=np.float64)
-
-#     if not audio.ndim == 1:
-#         raise ValueError("audio must be a 1D array")
-#     if audio.size == 0:
-#         raise ValueError("audio must not be empty")
-
-#     wav = pywt.Wavelet(wavelet)
-
-#     # get max number of decompositions for discrete wavelet transform
-#     max_level = pywt.dwt_max_level(
-#         data_len=len(audio),
-#         filter_len=wav.dec_len
-#     )
-
-#     if max_level < 1:
-#         raise ValueError("Audio is too short for wavelet decomposition.")
-
-#     if level < 1 or level > max_level:
-#         raise ValueError(
-#             f"Invalid decomposition level {level}. "
-#             f"Maximum supported level is {max_level}."
-#         )
-
-#     # get coefficients from wavelet decomposition [cA_J, cD_J, ..., cD_1]
-#     coeffs = pywt.wavedec(audio, wavelet=wavelet, level=level, mode="symmetric")
-
-#     # use finest-detail coefficient cD_1 to estimate noise standard deviation
-#     if noise_sigma is None:
-#         finest_detail = coeffs[-1]
-#         print(finest_detail)
-#         # noise_sigma = np.median(np.abs(finest_detail)) / 0.675
-#         # noise_sigma = np.median(np.abs(finest_detail)) / 0.6745
-#         noise_sigma = (
-#             np.median(
-#                 np.abs(finest_detail - np.median(finest_detail))
-#             ) / 0.6745
-#         )
-
-#     if not np.isfinite(noise_sigma) or noise_sigma < 0:
-#         raise ValueError("noise_sigma must be finite and nonnegative.")
-
-#     sigma_n_sq = noise_sigma ** 2   # noise variance
-
-#     # preserve approximation in denoised coefficients, which will be appended in loop
-#     denoised_coeffs = [coeffs[0]]
-
-#     # iterate for detail components to estimate a
-#     # bayes shrinkage threshold for each detail.
-#     for detail in coeffs[1:]:
-#         # calculate audio variance
-#         sigma_y_sq = np.mean(detail ** 2)
-#         # estimate signal's variance using audio and noise variances
-#         sigma_x_sq = max(sigma_y_sq - sigma_n_sq, 0.0)
-
-#         # use variance to calculate Bayes shrinkage threshold
-#         if sigma_x_sq<= 1e-12:
-#             threshold = np.inf
-#         else:
-#             sigma_x = np.sqrt(sigma_x_sq)
-#             threshold = sigma_n_sq / sigma_x    # correct calculation ?
-
-#         # soft thresholding
-#         denoised_detail = pywt.threshold(detail, value=threshold, mode="soft")
-#         denoised_coeffs.append(denoised_detail)
-
-#         print(
-#             f"Detail level: {len(denoised_coeffs)}"
-#             f" | Noise sigma: {noise_sigma:.8f}"
-#             f" | Noise variance: {sigma_n_sq:.8f}"
-#             f" | Signal variance: {sigma_x_sq:.8f}"
-#             f" | Threshold: {threshold:.8f}"
-#             f" | Coefficient std: {np.std(detail):.8f}"
-#         )
-
-#     # inverse wavelet transform
-#     denoised_audio = pywt.waverec(denoised_coeffs, wavelet=wavelet, mode="symmetric")
-
-#     # avoid reconstructing longer audio
-#     return denoised_audio[:len(audio)]
-
-
-# if __name__ == "__main__":
-#     main()
